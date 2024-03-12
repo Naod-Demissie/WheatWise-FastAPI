@@ -1,0 +1,34 @@
+{
+  "cSpell.words": [
+    "argmax",
+    "ASGI",
+    "cmap",
+    "colorbar",
+    "creds",
+    "dotenv",
+    "fastapi",
+    "figsize",
+    "googleapiclient",
+    "isnot",
+    "johndoe",
+    "loguru",
+    "noheader",
+    "nounits",
+    "numel",
+    "passlib",
+    "probs",
+    "scikitplot",
+    "Septoria",
+    "softmax",
+    "uvicorn",
+    "venv",
+    "xlabel",
+    "xticks",
+    "ylabel"
+  ],
+  "editor.defaultFormatter": "ms-python.black-formatter",
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  }
+}
