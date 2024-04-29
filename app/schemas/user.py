@@ -5,6 +5,7 @@ from app.models.enums import RegionTypeEnum, SexTypeEnum, UserTypeEnum, AccountS
 
 # ! update the maximum and the minimum length
 
+
 class CreateUserSchema(BaseModel):
     username: str = Field(..., min_length=2, max_length=50)
     prefix: str = Field(..., min_length=2, max_length=10)
@@ -35,6 +36,7 @@ class UserOutputSchema(BaseModel):
     sex: SexTypeEnum
     role: UserTypeEnum
     region: RegionTypeEnum
+    woreda: str
     zone: str
     organization: str
     password_reset_requested: bool

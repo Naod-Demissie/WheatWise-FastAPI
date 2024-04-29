@@ -6,8 +6,13 @@ from uuid import uuid4
 from dotenv import load_dotenv
 
 from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi.params import Depends
 from app.models.enums import DiseaseTypeEnum
-from app.schemas.diagnosis import DiagnosisOutputSchema, UploadedFileSchema
+from app.schemas.diagnosis import (
+    DiagnosisOutputSchema,
+    MobileDiagnosisInputSchema,
+    UploadedFileSchema,
+)
 from app.models.diagnosis import DiagnosisModel
 from sqlalchemy.orm import Session
 
@@ -16,6 +21,7 @@ import torch
 import torchvision.transforms as transforms
 
 from app.utils.session import SessionFactory
+import base64
 
 
 load_dotenv()
@@ -28,10 +34,12 @@ class FileServices:
     """
     Provides methods for uploading and managing image files.
     """
+
     #! change the file names when saving
     @staticmethod
-    def upload_image(db: Session, file: UploadFile, user_idx: int
-        ) -> UploadedFileSchema:
+    def upload_image(
+        db: Session, file: UploadFile, user_idx: int
+    ) -> UploadedFileSchema:
         """
         Uploads an image file, saves it to the specified folder, and creates a record in the database.
 
@@ -45,14 +53,14 @@ class FileServices:
             UploadedFileSchema: The schema representing the uploaded file.
         """
         try:
-            image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
-            with open(image_path, "wb") as image_file:
+            server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
+            with open(server_image_path, "wb") as image_file:
                 shutil.copyfileobj(file.file, image_file)
 
             uploaded_file = DiagnosisModel(
                 user_idx=user_idx,
-                diagnosis_id=uuid4().hex,
-                image_path=image_path,
+                server_id=uuid4().hex,
+                server_image_path=server_image_path,
                 image_name=file.filename,
             )
 
@@ -61,7 +69,7 @@ class FileServices:
             db.refresh(uploaded_file)
 
             return UploadedFileSchema(
-                diagnosis_id=uploaded_file.diagnosis_id,
+                server_id=uploaded_file.server_id,
                 filename=file.filename,
                 content_type=file.content_type,
             )
@@ -91,14 +99,14 @@ class FileServices:
         try:
             uploaded_files = []
             for file in files:
-                image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
-                with open(image_path, "wb") as image_file:
+                server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
+                with open(server_image_path, "wb") as image_file:
                     shutil.copyfileobj(file.file, image_file)
 
                 uploaded_file = DiagnosisModel(
-                    diagnosis_id=uuid4().hex,
+                    server_id=uuid4().hex,
                     user_idx=user_idx,
-                    image_path=image_path,
+                    server_image_path=server_image_path,
                     image_name=file.filename,
                 )
                 db.add(uploaded_file)
@@ -106,7 +114,7 @@ class FileServices:
                 db.refresh(uploaded_file)
                 uploaded_files.append(
                     UploadedFileSchema(
-                        diagnosis_id=uploaded_file.diagnosis_id,
+                        server_id=uploaded_file.server_id,
                         filename=file.filename,
                         content_type=file.content_type,
                     )
@@ -213,21 +221,21 @@ class DiagnosisServices:
             DiagnosisOutputSchema: The schema representing the diagnosis result.
         """
         try:
-            image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
-            with open(image_path, "wb") as image_file:
+            server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
+            with open(server_image_path, "wb") as image_file:
                 shutil.copyfileobj(file.file, image_file)
 
-            probs = DiagnosisServices._diagnose_image(image_path)
+            probs = DiagnosisServices._diagnose_image(server_image_path)
             server_diagnosis = DiagnosisServices._decode_prediction(probs)
 
             uploaded_file = DiagnosisModel(
                 user_idx=user_idx,
-                image_path=image_path,
-                diagnosis_id=uuid4().hex,
+                server_image_path=server_image_path,
+                server_id=uuid4().hex,
                 image_name=file.filename,
                 server_diagnosis=server_diagnosis,
-                is_diagnosed=True,
-                confidence_score=probs,
+                is_server_diagnosed=True,
+                server_confidence_score=probs,
             )
 
             db.add(uploaded_file)
@@ -245,7 +253,7 @@ class DiagnosisServices:
     @staticmethod
     def update_manual_diagnosis(
         db: Session,
-        diagnosis_id: str,
+        server_id: str,
         user_idx: int,
         manual_diagnosis: DiseaseTypeEnum,
     ) -> DiagnosisOutputSchema:
@@ -254,7 +262,7 @@ class DiagnosisServices:
 
         Args:
             db (Session): The database session.
-            diagnosis_id (str): The UUID of the diagnosis record to update.
+            server_id (str): The UUID of the diagnosis record to update.
             user_idx (int): The ID of the current user.
             manual_diagnosis (DiseaseTypeEnum): The manual diagnosis to set.
 
@@ -265,7 +273,7 @@ class DiagnosisServices:
             diagnosis = (
                 db.query(DiagnosisModel)
                 .filter(DiagnosisModel.user_idx == user_idx)
-                .filter(DiagnosisModel.diagnosis_id == diagnosis_id)
+                .filter(DiagnosisModel.server_id == server_id)
                 .first()
             )
             if not diagnosis:
@@ -305,7 +313,7 @@ class DiagnosisServices:
     #         uploaded_files = (
     #             db.query(DiagnosisModel)
     #             .filter(DiagnosisModel.user_idx == user_idx)
-    #             .filter(DiagnosisModel.is_diagnosed == False)
+    #             .filter(DiagnosisModel.is_server_diagnosed == False)
     #             .all()
     #         )
     #         for uploaded_file in uploaded_files:
@@ -314,8 +322,8 @@ class DiagnosisServices:
     #             uploaded_file.server_diagnosis = DiagnosisServices._decode_prediction(
     #                 probs
     #             )
-    #             uploaded_file.is_diagnosed = True
-    #             uploaded_file.confidence_score = probs
+    #             uploaded_file.is_server_diagnosed = True
+    #             uploaded_file.server_confidence_score = probs
 
     #             diagnosis_output = DiagnosisOutputSchema.model_validate(uploaded_file)
     #             results.append(diagnosis_output)
@@ -381,11 +389,13 @@ class DiagnosisServices:
 
             uploaded_files = (
                 db.query(DiagnosisModel)
-                .filter(DiagnosisModel.is_diagnosed == False)
+                .filter(DiagnosisModel.is_server_diagnosed == False)
                 .all()
             )
 
-            image_paths = [uploaded_file.image_path for uploaded_file in uploaded_files]
+            image_paths = [
+                uploaded_file.server_image_path for uploaded_file in uploaded_files
+            ]
 
             dataset = CustomDataset(image_paths, transform=DiagnosisServices.transform)
             dataloader = DataLoader(
@@ -407,8 +417,8 @@ class DiagnosisServices:
                     probs[i]
                 )
 
-                uploaded_file.is_diagnosed = True
-                uploaded_file.confidence_score = probs[i]
+                uploaded_file.is_server_diagnosed = True
+                uploaded_file.server_confidence_score = probs[i]
 
                 diagnosis_output = DiagnosisOutputSchema.model_validate(uploaded_file)
                 results.append(diagnosis_output)
@@ -420,4 +430,206 @@ class DiagnosisServices:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to diagnose uploaded files",
+            )
+
+        # def upload_diagnosis(
+        #     db: Session,
+        #     user_idx: int,
+        #     mobile_diagnosis_input: MobileDiagnosisInputSchema,
+        # ) -> DiagnosisOutputSchema:
+        #     """
+        #     Uploads an image file, saves it to the specified folder, and creates a record in the database.
+
+        #     Args:
+        #         db (Session): Database session.
+        #         file (UploadFile): The image file to upload.
+        #         user_idx (int): The id of the current user.
+
+        #     Returns:
+        #         DiagnosisOutputSchema: The schema representing the uploaded file.
+        #     """
+        #     try:
+        #         server_image_path = (
+        #             f"{UPLOAD_FOLDER_PATH}/{mobile_diagnosis_input.file.filename}"
+        #         )
+        #         print(1)
+        #         with open(server_image_path, "wb") as image_file:
+        #             shutil.copyfileobj(mobile_diagnosis_input.file, image_file)
+        #         print(2)
+
+        #         uploaded_diagnosis = DiagnosisModel(
+        #             user_idx=user_idx,
+        #             server_id=uuid4().hex,
+        #             mobile_id=mobile_diagnosis_input.mobile_id,
+        #             server_image_path=server_image_path,
+        #             image_name=mobile_diagnosis_input.file.filename,
+        #             mobile_diagnosis=mobile_diagnosis_input.mobile_diagnosis,
+        #             manual_diagnosis=mobile_diagnosis_input.manual_diagnosis,
+        #             remark=mobile_diagnosis_input.remark,
+        #             mobile_image_path=mobile_diagnosis_input.mobile_image_path,
+        #             # mobile_confidence_score=mobile_diagnosis_input.mobile_confidence_score,
+        #         )
+        #         print(3)
+
+        #         db.add(uploaded_diagnosis)
+        #         db.commit()
+        #         db.refresh(uploaded_diagnosis)
+
+        #         return DiagnosisOutputSchema.model_validate(uploaded_diagnosis)
+
+        #     except Exception as e:
+        #         print(e)
+        #         raise HTTPException(
+        #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #             detail=str(e),
+        #         )
+
+        # def upload_diagnosis(
+        #     db: Session, user_idx: int, mobile_diagnosis_input: MobileDiagnosisInputSchema
+        # ) -> DiagnosisOutputSchema:
+        #     """
+        #     Uploads an image file, saves it to the specified folder, and creates a record in the database.
+
+        #     Args:
+        #         db (Session): Database session.
+        #         file (UploadFile): The image file to upload.
+        #         user_idx (int): The id of the current user.
+
+        #     Returns:
+        #         DiagnosisOutputSchema: The schema representing the uploaded file.
+        #     """
+        #     try:
+        #         print(1)
+        #         image_file = base64.b64decode(mobile_diagnosis_input.base64_file)
+        #         print(2)
+        #         server_image_path = (
+        #             f"{UPLOAD_FOLDER_PATH}/{mobile_diagnosis_input.file_name}"
+        #         )
+        #         print(3)
+
+        #         with open(server_image_path, "wb") as file:
+        #             file.write(image_file)
+
+        #         print(4)
+
+        #         uploaded_diagnosis = DiagnosisModel(
+        #             user_idx=user_idx,
+        #             server_id=uuid4().hex,
+        #             mobile_id=mobile_diagnosis_input.mobile_id,
+        #             server_image_path=server_image_path,
+        #             image_name=mobile_diagnosis_input.file_name,  #! change image name to file name
+        #             mobile_diagnosis=mobile_diagnosis_input.mobile_diagnosis,
+        #             manual_diagnosis=mobile_diagnosis_input.manual_diagnosis,
+        #             remark=mobile_diagnosis_input.remark,
+        #             mobile_image_path=mobile_diagnosis_input.mobile_image_path,
+        #             mobile_confidence_score=mobile_diagnosis_input.mobile_confidence_score,
+        #         )
+
+        #         print(5)
+
+        #         db.add(uploaded_diagnosis)
+        #         db.commit()
+        #         db.refresh(uploaded_diagnosis)
+
+        #         return DiagnosisOutputSchema.model_validate(uploaded_diagnosis)
+
+        #     except Exception as e:
+        #         print(e)
+        #         raise HTTPException(
+        #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #             detail=str(e),
+        #         )
+
+    def upload_mobile_diagnosis(
+        db: Session,
+        file: UploadFile,
+        mobile_diagnosis_input: MobileDiagnosisInputSchema,
+        user_idx: int,
+    ) -> DiagnosisOutputSchema:
+        """
+        Uploads an image file, saves it to the specified folder, and creates a record in the database.
+
+        Args:
+            db (Session): Database session.
+            file (UploadFile): The image file to upload.
+            user_idx (int): The id of the current user.
+
+        Returns:
+            DiagnosisOutputSchema: The schema representing the uploaded file.
+        """
+        try:
+            server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
+            with open(server_image_path, "wb") as image_file:
+                shutil.copyfileobj(file.file, image_file)
+
+            uploaded_diagnosis = DiagnosisModel(
+                user_idx=user_idx,
+                server_id=uuid4().hex,
+                mobile_id=mobile_diagnosis_input.mobile_id,
+                server_image_path=server_image_path,
+                image_name=file.filename,
+                mobile_diagnosis=mobile_diagnosis_input.mobile_diagnosis,
+                # manual_diagnosis=mobile_diagnosis_input.manual_diagnosis,
+                remark=mobile_diagnosis_input.remark,
+                mobile_image_path=mobile_diagnosis_input.mobile_image_path,
+                mobile_confidence_score=mobile_diagnosis_input.mobile_confidence_score,
+            )
+
+            print(mobile_diagnosis_input.manual_diagnosis)
+
+            db.add(uploaded_diagnosis)
+            db.commit()
+            db.refresh(uploaded_diagnosis)
+
+            return DiagnosisOutputSchema.model_validate(uploaded_diagnosis)
+
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e),
+                # detail="Failed to upload file",
+            )
+
+    def update_mobile_diagnosis(
+        mobile_diagnosis_input: MobileDiagnosisInputSchema,
+        db: Session,
+        user_idx: int,
+    ) -> DiagnosisOutputSchema:
+        """
+        Uploads an image file, saves it to the specified folder, and creates a record in the database.
+
+        Args:
+            db (Session): Database session.
+            file (UploadFile): The image file to upload.
+            user_idx (int): The id of the current user.
+
+        Returns:
+            DiagnosisOutputSchema: The schema representing the uploaded file.
+        """
+        try:
+            uploaded_diagnosis = (
+                db.query(DiagnosisModel)
+                .filter(DiagnosisModel.mobile_id == mobile_diagnosis_input.mobile_id)
+                .first()
+            )
+            uploaded_diagnosis.mobile_diagnosis = (
+                mobile_diagnosis_input.mobile_diagnosis
+            )
+            uploaded_diagnosis.manual_diagnosis = (
+                mobile_diagnosis_input.manual_diagnosis
+            )
+            uploaded_diagnosis.remark = mobile_diagnosis_input.remark
+
+            uploaded_diagnosis.mobile_confidence_score = (
+                mobile_diagnosis_input.mobile_confidence_score
+            )
+            db.commit()
+            return DiagnosisOutputSchema.model_validate(uploaded_diagnosis)
+
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e),
             )

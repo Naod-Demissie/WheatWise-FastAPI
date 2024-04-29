@@ -1,12 +1,16 @@
 from typing import List
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, File, UploadFile, Depends, status
+from fastapi import APIRouter, Body, File, UploadFile, Depends, status
 
 from app.utils.session import create_session
 from app.models.enums import DiseaseTypeEnum
 from app.schemas.user import UserOutputSchema
 from app.services.auth import AuthServices
-from app.schemas.diagnosis import DiagnosisOutputSchema, UploadedFileSchema
+from app.schemas.diagnosis import (
+    DiagnosisOutputSchema,
+    MobileDiagnosisInputSchema,
+    UploadedFileSchema,
+)
 from app.services.diagnosis import DiagnosisServices, FileServices
 
 
@@ -119,7 +123,7 @@ async def diagnose_on_upload(
     description="Update the manual diagnosis for a diagnosis record.",
 )
 async def update_manual_diagnosis(
-    diagnosis_id: str,
+    server_id: str,
     manual_diagnosis: DiseaseTypeEnum,
     db: Session = Depends(create_session),
     current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
@@ -128,7 +132,7 @@ async def update_manual_diagnosis(
     Update the manual diagnosis for a diagnosis record.
 
     Args:
-        diagnosis_id (int): The ID of the diagnosis record to update.
+        server_id (int): The ID of the diagnosis record to update.
         manual_diagnosis (DiseaseTypeEnum): The manual diagnosis to set.
         db (Session): The database session.
         current_user (UserOutputSchema): The current authenticated user.
@@ -139,7 +143,7 @@ async def update_manual_diagnosis(
 
     return DiagnosisServices.update_manual_diagnosis(
         db,
-        diagnosis_id,
+        server_id,
         current_user.id,
         manual_diagnosis,
     )
@@ -166,3 +170,113 @@ async def get_diagnoses(
         List[DiagnosisOutputSchema]: A list of DiagnosisOutputSchema instances representing the diagnosis records.
     """
     return DiagnosisServices.get_diagnoses(db, current_user.id)
+
+
+@router.post(
+    "/upload-mobile-diagnosis",
+    response_model=DiagnosisOutputSchema,
+    status_code=status.HTTP_200_OK,
+    description="Uploads an image file to the server.",
+)
+async def upload_mobile_diagnosis(
+    mobile_diagnosis_input: MobileDiagnosisInputSchema,
+    db: Session = Depends(create_session),
+    file: UploadFile = File(...),
+    current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
+) -> DiagnosisOutputSchema:
+    """
+    Uploads an image file to the server.
+
+    Args:
+        db (Session): The database session.
+        file (UploadFile): The image file to upload.
+        current_user (UserOutputSchema): The current user performing the upload.
+
+    Returns:
+        UploadedFileSchema: The schema representing the uploaded file.
+    """
+    return DiagnosisServices.upload_mobile_diagnosis(
+        db, file, mobile_diagnosis_input, current_user.id
+    )
+
+
+# @router.post(
+#     "/upload-mobile-diagnosis",
+#     response_model=DiagnosisOutputSchema,
+#     status_code=status.HTTP_200_OK,
+#     description="Uploads an image file to the server.",
+# )
+# async def upload_mobile_diagnosis(
+#     db: Session = Depends(create_session),
+#     file: UploadFile = File(...),
+#     mobile_diagnosis_input: MobileDiagnosisInputSchema = Body(...),
+#     current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
+# ) -> DiagnosisOutputSchema:
+#     """
+#     Uploads an image file to the server.
+
+#     Args:
+#         db (Session): The database session.
+#         file (UploadFile): The image file to upload.
+#         current_user (UserOutputSchema): The current user performing the upload.
+
+#     Returns:
+#         UploadedFileSchema: The schema representing the uploaded file.
+#     """
+#     return DiagnosisServices.upload_mobile_diagnosis(
+#         db, file, mobile_diagnosis_input, current_user.id
+#     )
+
+
+@router.put(
+    "/update-mobile-diagnosis",
+    response_model=DiagnosisOutputSchema,
+    status_code=status.HTTP_200_OK,
+    description="Uploads an image file to the server.",  #######!change the descriptions
+)
+async def update_mobile_diagnosis(
+    mobile_diagnosis_input: MobileDiagnosisInputSchema,
+    db: Session = Depends(create_session),
+    current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
+) -> DiagnosisOutputSchema:
+    """
+    Uploads an image file to the server.
+
+    Args:
+        db (Session): The database session.
+        file (UploadFile): The image file to upload.
+        current_user (UserOutputSchema): The current user performing the upload.
+
+    Returns:
+        UploadedFileSchema: The schema representing the uploaded file.
+    """
+    return DiagnosisServices.update_mobile_diagnosis(
+        mobile_diagnosis_input, db, current_user.id
+    )
+
+
+# @router.put(
+#     "/update-mobile-diagnosis",
+#     response_model=DiagnosisOutputSchema,
+#     status_code=status.HTTP_200_OK,
+#     description="Uploads an image file to the server.",  #######!change the descriptions
+# )
+# async def update_mobile_diagnosis(
+#     db: Session = Depends(create_session),
+#     mobile_diagnosis_input: MobileDiagnosisInputSchema = Body(...),
+#     current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
+# ) -> DiagnosisOutputSchema:
+#     """
+#     Uploads an image file to the server.
+
+#     Args:
+#         db (Session): The database session.
+#         file (UploadFile): The image file to upload.
+#         current_user (UserOutputSchema): The current user performing the upload.
+
+#     Returns:
+#         UploadedFileSchema: The schema representing the uploaded file.
+#     """
+#     return DiagnosisServices.update_mobile_diagnosis(
+#         db, mobile_diagnosis_input, current_user.id
+#     )

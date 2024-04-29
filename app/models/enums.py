@@ -41,3 +41,4 @@ class DiseaseTypeEnum(Enum):
     SEPTORIA = "Septoria"
     HEALTHY = "Healthy"
     MILDEW = "Mildew"
+    OTHER = "Other"

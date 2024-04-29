@@ -21,6 +21,7 @@ app = FastAPI(
     version=__version__,
 )
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,3 +34,4 @@ app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(diagnosis.router)
 app.include_router(analytics.router)
+

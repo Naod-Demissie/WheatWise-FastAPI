@@ -89,7 +89,11 @@ class AuthServices:
             UserModel: User object found
         """
         try:
-            user = db.query(UserModel).filter(UserModel.username == username).first()
+            user = db.query(UserModel).filter(UserModel.email == username).first()
+            if user is None:
+                user = (
+                    db.query(UserModel).filter(UserModel.username == username).first()
+                )
             return user
         except Exception as e:
             print(e)
@@ -137,10 +141,10 @@ class AuthServices:
                     detail="Invalid credentials",
                 )
 
-            if AuthServices._is_expired(expires_at):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
-                )
+            # if AuthServices._is_expired(expires_at):
+            #     raise HTTPException(
+            #         status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
+            #     )
 
             token_data = TokenDataSchema(
                 username=username,

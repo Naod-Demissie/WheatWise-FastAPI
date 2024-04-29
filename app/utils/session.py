@@ -4,15 +4,19 @@ from typing import Iterator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from dotenv import load_dotenv
 
 
 Base = declarative_base()
 
+
+load_dotenv()
 engine = create_engine(
-    f"postgresql://{os.environ.get('DATABASE_USERNAME')}:"
-    f"{os.environ.get('DATABASE_PASSWORD')}@{os.environ.get('DATABASE_HOST')}:"
-    f"{os.environ.get('DATABASE_PORT')}/{os.environ.get('APP_DATABASE')}"
+    f"postgresql://{os.getenv('DATABASE_USERNAME')}:"
+    f"{os.getenv('DATABASE_PASSWORD')}@{os.getenv('DATABASE_HOST')}:"
+    f"{os.getenv('DATABASE_PORT')}/{os.getenv('APP_DATABASE')}"
 )
+
 
 SessionFactory = sessionmaker(
     bind=engine,
