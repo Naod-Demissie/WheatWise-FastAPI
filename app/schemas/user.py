@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, Field, EmailStr
 from app.models.enums import RegionTypeEnum, SexTypeEnum, UserTypeEnum, AccountStatus
 
@@ -22,7 +23,11 @@ class CreateUserSchema(BaseModel):
 
 
 class UpdateUserDetailSchema(CreateUserSchema):
-    pass
+    profile_pic_base64: Optional[str]
+
+    class Config:
+        from_attributes = True
+
 
 
 class UserOutputSchema(BaseModel):
@@ -43,6 +48,7 @@ class UserOutputSchema(BaseModel):
     first_time_login: bool
     account_status: AccountStatus
     created_at: datetime
+    profile_pic_base64: Optional[str] = None
 
     class Config:
         from_attributes = True

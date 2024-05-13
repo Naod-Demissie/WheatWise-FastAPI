@@ -79,11 +79,13 @@ class AuthServices:
 
     @staticmethod
     def _get_user(db: Session, username: str) -> UserModel:
-        """Get a user by username.
+        """Get a user by username or email.
+
 
         Args:
             db (Session): Database session
-            username (str): Username
+            username (str): Username or email
+
 
         Returns:
             UserModel: User object found
@@ -201,7 +203,8 @@ class AuthServices:
         Args:
             db (Session, optional): Database session. Defaults to Depends(create_session).
             login (OAuth2PasswordRequestForm, optional): Form containing the username
-                and password. Defaults to Depends().
+                or email and password.
+
 
         Returns:
             TokenSchema: An instance of TokenSchema containing the access token and token type.

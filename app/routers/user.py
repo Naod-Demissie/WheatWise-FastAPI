@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import status, Depends, APIRouter
 
 from app.schemas.user import (
+    UpdateUserDetailSchema,
     UserOutputSchema,
     UpdatePasswordSchema,
     CreateUserSchema,
@@ -119,7 +120,7 @@ def get_user_fullname(
     description="Update the profile data for the current user.",
 )
 def update_profile(
-    update_data: CreateUserSchema,
+    update_data: UpdateUserDetailSchema,
     current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
     db: Session = Depends(create_session),
 ) -> UserOutputSchema:
@@ -127,7 +128,7 @@ def update_profile(
     Update the profile data for the current user.
 
     Args:
-    - update_data (CreateUserSchema): Updated profile data
+    - update_data (UpdateUserDetailSchema): Updated profile data
     - current_user (UserOutputSchema): Current user data
     - db (Session): Database session
 
@@ -137,7 +138,7 @@ def update_profile(
     return UserServices.update_profile(db, current_user.user_id, update_data)
 
 
-@router.put(
+@router.post(
     "/update-password",
     response_model=dict,
     status_code=status.HTTP_200_OK,

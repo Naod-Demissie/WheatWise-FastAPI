@@ -29,12 +29,12 @@ class DiagnosisOutputSchema(BaseModel):
 
 class MobileDiagnosisInputSchema(BaseModel):
     mobile_id: str
-    mobile_diagnosis: Optional[DiseaseTypeEnum]
-    manual_diagnosis: Optional[DiseaseTypeEnum]
+    mobile_diagnosis: Optional[DiseaseTypeEnum] = None
+    manual_diagnosis: Optional[DiseaseTypeEnum] = None
     mobile_image_path: str
-    remark: Optional[str]
+    remark: Optional[str] = None
     file_name: str
-    mobile_confidence_score: Optional[List[float]]
+    mobile_confidence_score: Optional[List[float]] = None
 
     @model_validator(mode="before")
     @classmethod
