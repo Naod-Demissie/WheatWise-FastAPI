@@ -27,7 +27,6 @@ class UserTypeEnum(Enum):
     USER = "User"
     ADMIN = "Admin"
     SYSTEM_ADMIN = "System Admin"
-    # OWNER = "Owner"
 
 
 class SexTypeEnum(Enum):

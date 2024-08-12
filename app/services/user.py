@@ -123,47 +123,6 @@ class UserServices:
             db.commit()
             db.close()
 
-    # @staticmethod
-    # def get_user(db: Session, user_id: str) -> UserOutputSchema:
-    #     """
-    #     Get a user by user ID.
-
-    #     Args:
-    #         db (Session): Database session
-    #         user_id (str): UUID of the current user
-
-    #     Returns:
-    #         UserOutputSchema: Current user's data
-
-    #     """
-    #     try:
-    #         user = db.query(UserModel).filter(UserModel.user_id == user_id).first()
-    #         if not user:
-    #             raise HTTPException(
-    #                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-    #             )
-
-    #         if user.profile_pic_path is not None:
-    #             with open(user.profile_pic_path, "rb") as img_file:
-    #                 img_data = img_file.read()
-    #                 base64_encoded = base64.b64encode(img_data)
-    #                 base64_string = base64_encoded.decode("utf-8")
-
-    #         profile_pic_base64 = (
-    #             base64_string if user.profile_pic_path is not None else None
-    #         )
-    #         UserOutputSchema.model_validate(user)
-    #         UserOutputSchema.profile_pic_base64 = profile_pic_base64
-
-    #         return UserOutputSchema
-
-    #     except Exception as e:
-    #         print(e)
-    #         raise HTTPException(
-    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #             detail="User not found",
-    #         )
-
     @staticmethod
     def get_user(db: Session, user_id: str) -> UserOutputSchema:
         """
@@ -219,34 +178,6 @@ class UserServices:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="User not found",
             )
-
-    # @staticmethod
-    # def get_user(db: Session, user_id: str) -> UserOutputSchema:
-    #     """
-    #     Get a user by user ID.
-
-    #     Args:
-    #         db (Session): Database session
-    #         user_id (str): UUID of the current user
-
-    #     Returns:
-    #         UserOutputSchema: Current user's data
-
-    #     """
-    #     try:
-    #         user = db.query(UserModel).filter(UserModel.user_id == user_id).first()
-    #         if not user:
-    #             raise HTTPException(
-    #                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-    #             )
-    #         return UserOutputSchema.model_validate(user)
-
-    #     except Exception as e:
-    #         print(e)
-    #         raise HTTPException(
-    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #             detail="User not found",
-    #         )
 
     @staticmethod
     def get_users(
@@ -347,14 +278,12 @@ class UserServices:
             user.organization = update_data.organization
 
             if update_data.profile_pic_base64 is not None:
-                # base64_string = update_data.profile_pic_base64.split('base64,')[1] if base64_string.startswith('data:image') else update_data.profile_pic_base64
                 base64_string = update_data.profile_pic_base64
                 decoded_image = base64.b64decode(base64_string)
 
                 profile_folder_path = (
                     os.getenv("PROFILE_FOLDER_PATH")
                     + "/"
-                    # + "".join(random.choices("0123456789", k=6))
                     # + "".join(random.choices("0123456789", k=6))
                     + user_id
                     + ".png"
@@ -374,131 +303,6 @@ class UserServices:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Unable to update user profile",
             )
-
-    # @staticmethod
-    # def update_profile(
-    #     db: Session, user_id: str, update_data: UpdateUserDetailSchema
-    # ) -> UserOutputSchema:
-    #     """
-    #     Update the profile data for a user.
-
-    #     Args:
-    #         db (Session): Database session
-    #         user_id (str): UUID of the current user
-    #         update_data (UpdateUserDetailSchema): Updated profile data
-
-    #     Returns:
-    #         UserOutputSchema: Updated user profile data
-    #     """
-    #     try:
-    #         user = db.query(UserModel).filter(UserModel.user_id == user_id).first()
-    #         if not user:
-    #             raise HTTPException(
-    #                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-    #             )
-
-    #         user.username = update_data.username
-    #         user.prefix = update_data.prefix
-    #         user.firstname = update_data.firstname
-    #         user.lastname = update_data.lastname
-    #         user.email = update_data.email
-    #         user.role = update_data.role
-    #         user.sex = update_data.sex
-    #         user.region = update_data.region
-    #         user.zone = update_data.zone
-    #         user.woreda = update_data.woreda
-    #         user.organization = update_data.organization
-
-    #         db.commit()
-    #         return UserOutputSchema.model_validate(user)
-
-    #     except Exception as e:
-    #         print(e)
-    #         raise HTTPException(
-    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #             detail="Unable to update user profile",
-    #         )
-
-    # @staticmethod
-    # def update_password(db: Session, password_data: UpdatePasswordSchema) -> dict:
-    #     """
-    #     Update the password for a user.
-
-    #     Args:
-    #         db (Session): Database session
-    #         password_data (UpdatePasswordSchema): Update password data including current password, new password, and confirm new password
-
-    #     Returns:
-    #         dict: Dictionary containing a message confirming the password update
-    #     """
-
-    #     try:
-    #         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    #         user = (
-    #             db.query(UserModel)
-    #             .filter(UserModel.email == password_data.email)
-    #             .first()
-    #         )
-
-    #         if not user:
-    #             raise HTTPException(
-    #                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-    #             )
-
-    #         if user.password_reset_requested:
-    #             password_log = (
-    #                 db.query(PasswordReset)
-    #                 .filter(PasswordReset.user_idx == user.id)
-    #                 .first()
-    #             )
-
-    #             if password_data.current_password != password_log.secret_key:
-    #                 raise HTTPException(
-    #                     status_code=status.HTTP_400_BAD_REQUEST,
-    #                     detail="OTP is incorrect. Enter the correct OTP.",
-    #                 )
-
-    #             if (
-    #                 password_log.timestamp + timedelta(hours=OTP_EXPIRE_TIME)
-    #                 < datetime.now()
-    #             ):
-    #                 raise HTTPException(
-    #                     status_code=status.HTTP_400_BAD_REQUEST,
-    #                     detail="OTP has expired.",
-    #                 )
-
-    #         else:
-    #             if not pwd_context.verify(
-    #                 password_data.current_password, user.password
-    #             ):
-    #                 raise HTTPException(
-    #                     status_code=status.HTTP_400_BAD_REQUEST,
-    #                     detail="Current password is incorrect.",
-    #                 )
-
-    #         if password_data.new_password != password_data.new_password2:
-    #             raise HTTPException(
-    #                 status_code=status.HTTP_400_BAD_REQUEST,
-    #                 detail="New passwords do not match",
-    #             )
-
-    #         # Update the password
-    #         user.password = pwd_context.hash(password_data.new_password)
-    #         user.password_reset_requested = False
-
-    #         if user.first_time_login:
-    #             user.first_time_login = False
-
-    #         db.delete(password_log)
-    #         db.commit()
-    #         return {"message": "Password updated successfully"}
-
-    #     except Exception as e:
-    #         print(e)
-    #         raise HTTPException(
-    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #             detail="Failed to update user password",
-    #         )
 
     @staticmethod
     def update_password(db: Session, password_data: UpdatePasswordSchema) -> dict:

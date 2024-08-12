@@ -93,29 +93,6 @@ async def diagnose_on_upload(
     return diagnosis_result
 
 
-# @router.get(
-#     "/diagnose-uploaded",
-#     response_model=List[DiagnosisOutputSchema],
-#     status_code=status.HTTP_200_OK,
-#     description="Diagnose images for all uploaded files that are not yet diagnosed.",
-# )
-# def diagnose_uploaded_images(
-#     db: Session = Depends(create_session),
-#     current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
-# ):
-#     """
-#     Diagnose images for all uploaded files that are not yet diagnosed.
-
-#     Args:
-#     - db (Session): The SQLAlchemy database session.
-
-#     Returns:
-#     - List[DiagnosisOutputSchema]: A list of DiagnosisOutputSchema instances representing the diagnosis results.
-#     """
-#     results = DiagnosisServices.diagnose_uploaded_images(db, current_user.id)
-#     return results
-
-
 @router.put(
     "/update-manual-diagnosis",
     response_model=DiagnosisOutputSchema,
@@ -176,7 +153,7 @@ async def get_diagnoses(
     "/upload-mobile-diagnosis",
     response_model=DiagnosisOutputSchema,
     status_code=status.HTTP_200_OK,
-    description="Uploads an image file to the server.",
+    description="Uploads the mobile diagnosis with an image file to the server.",
 )
 async def upload_mobile_diagnosis(
     mobile_diagnosis_input: MobileDiagnosisInputSchema,
@@ -200,39 +177,11 @@ async def upload_mobile_diagnosis(
     )
 
 
-# @router.post(
-#     "/upload-mobile-diagnosis",
-#     response_model=DiagnosisOutputSchema,
-#     status_code=status.HTTP_200_OK,
-#     description="Uploads an image file to the server.",
-# )
-# async def upload_mobile_diagnosis(
-#     db: Session = Depends(create_session),
-#     file: UploadFile = File(...),
-#     mobile_diagnosis_input: MobileDiagnosisInputSchema = Body(...),
-#     current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
-# ) -> DiagnosisOutputSchema:
-#     """
-#     Uploads an image file to the server.
-
-#     Args:
-#         db (Session): The database session.
-#         file (UploadFile): The image file to upload.
-#         current_user (UserOutputSchema): The current user performing the upload.
-
-#     Returns:
-#         UploadedFileSchema: The schema representing the uploaded file.
-#     """
-#     return DiagnosisServices.upload_mobile_diagnosis(
-#         db, file, mobile_diagnosis_input, current_user.id
-#     )
-
-
 @router.put(
     "/update-mobile-diagnosis",
     response_model=DiagnosisOutputSchema,
     status_code=status.HTTP_200_OK,
-    description="Uploads an image file to the server.",  #######!change the descriptions
+    description="Updates the mobile diagnosis.",
 )
 async def update_mobile_diagnosis(
     mobile_diagnosis_input: MobileDiagnosisInputSchema,
@@ -244,7 +193,6 @@ async def update_mobile_diagnosis(
 
     Args:
         db (Session): The database session.
-        file (UploadFile): The image file to upload.
         current_user (UserOutputSchema): The current user performing the upload.
 
     Returns:
@@ -253,30 +201,3 @@ async def update_mobile_diagnosis(
     return DiagnosisServices.update_mobile_diagnosis(
         mobile_diagnosis_input, db, current_user.id
     )
-
-
-# @router.put(
-#     "/update-mobile-diagnosis",
-#     response_model=DiagnosisOutputSchema,
-#     status_code=status.HTTP_200_OK,
-#     description="Uploads an image file to the server.",  #######!change the descriptions
-# )
-# async def update_mobile_diagnosis(
-#     db: Session = Depends(create_session),
-#     mobile_diagnosis_input: MobileDiagnosisInputSchema = Body(...),
-#     current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
-# ) -> DiagnosisOutputSchema:
-#     """
-#     Uploads an image file to the server.
-
-#     Args:
-#         db (Session): The database session.
-#         file (UploadFile): The image file to upload.
-#         current_user (UserOutputSchema): The current user performing the upload.
-
-#     Returns:
-#         UploadedFileSchema: The schema representing the uploaded file.
-#     """
-#     return DiagnosisServices.update_mobile_diagnosis(
-#         db, mobile_diagnosis_input, current_user.id
-#     )
