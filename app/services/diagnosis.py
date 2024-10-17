@@ -17,8 +17,9 @@ from app.models.diagnosis import DiagnosisModel
 from sqlalchemy.orm import Session
 
 import numpy as np
-import torch
-import torchvision.transforms as transforms
+
+# import torch
+# import torchvision.transforms as transforms
 
 from app.utils.session import SessionFactory
 import base64
@@ -129,60 +130,60 @@ class FileServices:
 
 
 class DiagnosisServices:
-    transform = transforms.Compose(
-        [
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    batch_size = 12
+    # transform = transforms.Compose(
+    #     [
+    #         transforms.Resize((224, 224)),
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    #     ]
+    # )
+    # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    # batch_size = 12
 
-    @staticmethod
-    def load_model(model_path: str) -> torch.nn.Module:
-        """
-        Load a PyTorch model from the specified path.
+    # @staticmethod
+    # def load_model(model_path: str) -> torch.nn.Module:
+    #     """
+    #     Load a PyTorch model from the specified path.
 
-        Args:
-            model_path (str): The path to the PyTorch model file.
+    #     Args:
+    #         model_path (str): The path to the PyTorch model file.
 
-        Returns:
-            torch.nn.Module: The loaded PyTorch model.
-        """
-        # model = torch.load(model_path) #! delete if not needed
-        model = torch.jit.load(model_path)
-        model.to(DiagnosisServices.device)
-        model.eval()
-        return model
+    #     Returns:
+    #         torch.nn.Module: The loaded PyTorch model.
+    #     """
+    #     # model = torch.load(model_path) #! delete if not needed
+    #     model = torch.jit.load(model_path)
+    #     model.to(DiagnosisServices.device)
+    #     model.eval()
+    #     return model
 
-    @staticmethod
-    def _diagnose_image(image_path: str) -> list:
-        """
-        Diagnose an image using the loaded PyTorch model.
+    # @staticmethod
+    # def _diagnose_image(image_path: str) -> list:
+    #     """
+    #     Diagnose an image using the loaded PyTorch model.
 
-        Args:
-            image_path (str): The path to the image file.
+    #     Args:
+    #         image_path (str): The path to the image file.
 
-        Returns:
-            list: A list of probabilities for each class.
-        """
-        from app.main import model
+    #     Returns:
+    #         list: A list of probabilities for each class.
+    #     """
+    #     from app.main import model
 
-        image = Image.open(image_path)
-        image = image.convert("RGB")
+    #     image = Image.open(image_path)
+    #     image = image.convert("RGB")
 
-        image = (
-            DiagnosisServices.transform(image).unsqueeze(0).to(DiagnosisServices.device)
-        )
+    #     image = (
+    #         DiagnosisServices.transform(image).unsqueeze(0).to(DiagnosisServices.device)
+    #     )
 
-        with torch.no_grad():
-            output = model(image)
+    #     with torch.no_grad():
+    #         output = model(image)
 
-        probs = torch.nn.functional.softmax(output[0], dim=0)
+    #     probs = torch.nn.functional.softmax(output[0], dim=0)
 
-        probs = probs.data.cpu().numpy().tolist()
-        return probs
+    #     probs = probs.data.cpu().numpy().tolist()
+    #     return probs
 
     @staticmethod
     def _decode_prediction(probs: List[float]) -> DiseaseTypeEnum:
@@ -325,69 +326,69 @@ class DiagnosisServices:
                 detail="Failed to retrieve diagnosis records",
             )
 
-    @staticmethod
-    def batch_diagnose_uploaded_images(
-        db: Session = SessionFactory(),
-    ) -> List[DiagnosisOutputSchema]:
-        """
-        Diagnose images for all uploaded files that are not yet diagnosed.
+    # @staticmethod
+    # def batch_diagnose_uploaded_images(
+    #     db: Session = SessionFactory(),
+    # ) -> List[DiagnosisOutputSchema]:
+    #     """
+    #     Diagnose images for all uploaded files that are not yet diagnosed.
 
-        Args:
-            db (Session): The database session.
+    #     Args:
+    #         db (Session): The database session.
 
-        Returns:
-            List[DiagnosisOutputSchema]: A list of DiagnosisOutputSchema instances representing the diagnosis results.
-        """
+    #     Returns:
+    #         List[DiagnosisOutputSchema]: A list of DiagnosisOutputSchema instances representing the diagnosis results.
+    #     """
 
-        try:
-            from torch.utils.data import DataLoader
-            from app.main import model
-            from app.utils.dataset import CustomDataset
+    #     try:
+    #         from torch.utils.data import DataLoader
+    #         from app.main import model
+    #         from app.utils.dataset import CustomDataset
 
-            uploaded_files = (
-                db.query(DiagnosisModel)
-                .filter(DiagnosisModel.is_server_diagnosed == False)
-                .all()
-            )
+    #         uploaded_files = (
+    #             db.query(DiagnosisModel)
+    #             .filter(DiagnosisModel.is_server_diagnosed == False)
+    #             .all()
+    #         )
 
-            image_paths = [
-                uploaded_file.server_image_path for uploaded_file in uploaded_files
-            ]
+    #         image_paths = [
+    #             uploaded_file.server_image_path for uploaded_file in uploaded_files
+    #         ]
 
-            dataset = CustomDataset(image_paths, transform=DiagnosisServices.transform)
-            dataloader = DataLoader(
-                dataset, batch_size=DiagnosisServices.batch_size, shuffle=False
-            )
+    #         dataset = CustomDataset(image_paths, transform=DiagnosisServices.transform)
+    #         dataloader = DataLoader(
+    #             dataset, batch_size=DiagnosisServices.batch_size, shuffle=False
+    #         )
 
-            probs = []
-            for batch_images in dataloader:
-                batch_images = batch_images.to(DiagnosisServices.device)
-                with torch.no_grad():
-                    output = model(batch_images)
-                prob = torch.nn.functional.softmax(output, dim=0)
-                prob = prob.data.cpu().numpy().tolist()
-                probs.extend(prob)
+    #         probs = []
+    #         for batch_images in dataloader:
+    #             batch_images = batch_images.to(DiagnosisServices.device)
+    #             with torch.no_grad():
+    #                 output = model(batch_images)
+    #             prob = torch.nn.functional.softmax(output, dim=0)
+    #             prob = prob.data.cpu().numpy().tolist()
+    #             probs.extend(prob)
 
-            results = []
-            for i, uploaded_file in enumerate(uploaded_files):
-                uploaded_file.server_diagnosis = DiagnosisServices._decode_prediction(
-                    probs[i]
-                )
+    #         results = []
+    #         for i, uploaded_file in enumerate(uploaded_files):
+    #             uploaded_file.server_diagnosis = DiagnosisServices._decode_prediction(
+    #                 probs[i]
+    #             )
 
-                uploaded_file.is_server_diagnosed = True
-                uploaded_file.server_confidence_score = probs[i]
+    #             uploaded_file.is_server_diagnosed = True
+    #             uploaded_file.server_confidence_score = probs[i]
 
-                diagnosis_output = DiagnosisOutputSchema.model_validate(uploaded_file)
-                results.append(diagnosis_output)
+    #             diagnosis_output = DiagnosisOutputSchema.model_validate(uploaded_file)
+    #             results.append(diagnosis_output)
 
-            db.commit()
-            return results
-        except Exception as e:
-            print(e)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to diagnose uploaded files",
-            )
+    #         db.commit()
+    #         return results
+    #     except Exception as e:
+    #         print(e)
+    #         raise HTTPException(
+    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #             detail="Failed to diagnose uploaded files",
+    #         )
 
     def upload_mobile_diagnosis(
         db: Session,

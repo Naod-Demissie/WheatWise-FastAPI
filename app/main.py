@@ -10,8 +10,8 @@ from app.version import __version__
 
 
 load_dotenv()
-MODEL_PATH = os.getenv("MODEL_PATH")
-model = DiagnosisServices.load_model(model_path=MODEL_PATH)
+# MODEL_PATH = os.getenv("MODEL_PATH")
+# model = DiagnosisServices.load_model(model_path=MODEL_PATH)
 
 UserServices.create_default_user()
 
@@ -34,4 +34,3 @@ app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(diagnosis.router)
 app.include_router(analytics.router)
-

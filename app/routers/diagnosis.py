@@ -67,30 +67,30 @@ async def upload_images(
     return FileServices.upload_images(db, files, current_user.id)
 
 
-@router.post(
-    "/diagnose-on-upload",
-    response_model=DiagnosisOutputSchema,
-    status_code=status.HTTP_201_CREATED,
-    description="Diagnose an image file uploaded by the current user and save the result to the database.",
-)
-async def diagnose_on_upload(
-    db: Session = Depends(create_session),
-    file: UploadFile = File(...),
-    current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
-) -> DiagnosisOutputSchema:
-    """
-    Diagnose an image file uploaded by the current user and save the result to the database.
+# @router.post(
+#     "/diagnose-on-upload",
+#     response_model=DiagnosisOutputSchema,
+#     status_code=status.HTTP_201_CREATED,
+#     description="Diagnose an image file uploaded by the current user and save the result to the database.",
+# )
+# async def diagnose_on_upload(
+#     db: Session = Depends(create_session),
+#     file: UploadFile = File(...),
+#     current_user: UserOutputSchema = Depends(AuthServices.get_current_user),
+# ) -> DiagnosisOutputSchema:
+#     """
+#     Diagnose an image file uploaded by the current user and save the result to the database.
 
-    Args:
-        db (Session): The database session.
-        file (UploadFile): The image file to diagnose.
-        current_user (UserOutputSchema): The current user uploading the file.
+#     Args:
+#         db (Session): The database session.
+#         file (UploadFile): The image file to diagnose.
+#         current_user (UserOutputSchema): The current user uploading the file.
 
-    Returns:
-        DiagnosisOutputSchema: The schema representing the diagnosis result.
-    """
-    diagnosis_result = DiagnosisServices.diagnose_on_upload(db, file, current_user.id)
-    return diagnosis_result
+#     Returns:
+#         DiagnosisOutputSchema: The schema representing the diagnosis result.
+#     """
+#     diagnosis_result = DiagnosisServices.diagnose_on_upload(db, file, current_user.id)
+#     return diagnosis_result
 
 
 @router.put(

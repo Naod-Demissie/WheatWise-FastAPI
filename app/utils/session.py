@@ -12,9 +12,9 @@ Base = declarative_base()
 
 load_dotenv()
 engine = create_engine(
-    f"postgresql://{os.getenv('DATABASE_USERNAME')}:"
-    f"{os.getenv('DATABASE_PASSWORD')}@{os.getenv('DATABASE_HOST')}:"
-    f"{os.getenv('DATABASE_PORT')}/{os.getenv('APP_DATABASE')}"
+    f"postgresql://{os.getenv('POSTGRES_USER')}:"
+    f"{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('DATABASE_HOST')}:"
+    f"{os.getenv('DATABASE_PORT')}/{os.getenv('POSTGRES_DB')}"
 )
 
 

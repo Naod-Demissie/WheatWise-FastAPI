@@ -35,4 +35,5 @@ class DiagnosisModel(Base):
     mobile_confidence_score = Column(JSON, nullable=True)
     user = relationship("UserModel", back_populates="diagnosis")
 
+
 Base.metadata.create_all(bind=engine)

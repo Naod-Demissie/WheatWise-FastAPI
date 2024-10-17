@@ -44,6 +44,7 @@ class UserServices:
             UserOutputSchema: Created user data
         """
         try:
+
             if current_user.role == "User":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -198,6 +199,9 @@ class UserServices:
 
         """
         try:
+            print(f"11111111111 {current_user.role=}")
+            print(current_user.role == "User")
+
             if current_user.role == "User":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,

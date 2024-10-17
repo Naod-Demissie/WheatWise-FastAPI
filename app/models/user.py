@@ -39,11 +39,17 @@ class UserModel(Base):
     role = Column(PgEnum(UserTypeEnum), nullable=False, default=UserTypeEnum.USER)
     first_time_login = Column(Boolean, nullable=False, default=True)
     password_reset_requested = Column(Boolean, nullable=False, default=False)
-    account_status = Column(PgEnum(AccountStatus), nullable=False, default=AccountStatus.ACTIVE)
+    account_status = Column(
+        PgEnum(AccountStatus), nullable=False, default=AccountStatus.ACTIVE
+    )
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     deleted_at = Column(DateTime, nullable=True)
-    password_resets = relationship("PasswordReset", back_populates="account", cascade="all, delete-orphan")
-    diagnosis = relationship("DiagnosisModel", back_populates="user", cascade="all, delete-orphan")
+    password_resets = relationship(
+        "PasswordReset", back_populates="account", cascade="all, delete-orphan"
+    )
+    diagnosis = relationship(
+        "DiagnosisModel", back_populates="user", cascade="all, delete-orphan"
+    )
     profile_pic_path = Column(String, nullable=True)
 
     def set_password(self, password: str):
