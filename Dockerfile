@@ -13,13 +13,17 @@
 # CMD ["fastapi", "run", "app/main.py", "--port", "8001"]
 
 
-FROM nvcr.io/nvidia/pytorch:24.01-py3
 
 FROM docker.io/nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
-# Set environment variables for CUDA
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
 
 WORKDIR /app
@@ -27,7 +31,6 @@ WORKDIR /app
 COPY ./requirements.txt requirements.txt
 
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
-# RUN pip install --upgrade pip && pip install --no-cache-dir --upgrade -r requirements.txt
 
 COPY . .
 

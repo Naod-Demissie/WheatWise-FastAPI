@@ -8,11 +8,8 @@ services:
       - 8001:8001
     depends_on:
       - db
-
     networks:
       - wheatwise-network
-    # env_file: 
-    #   - .env 
 
   db:
     image: postgres:16-alpine
@@ -23,8 +20,6 @@ services:
       - 5432:5432
     networks:
       - wheatwise-network
-    # env_file: 
-    #   - .env 
 
 volumes:
   postgres_data:

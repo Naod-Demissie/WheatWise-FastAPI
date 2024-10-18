@@ -1,4 +1,5 @@
 import os
+import imghdr
 import shutil
 from PIL import Image
 from typing import List
@@ -18,8 +19,8 @@ from sqlalchemy.orm import Session
 
 import numpy as np
 
-# import torch
-# import torchvision.transforms as transforms
+import torch
+import torchvision.transforms as transforms
 
 from app.utils.session import SessionFactory
 import base64
@@ -54,6 +55,26 @@ class FileServices:
             UploadedFileSchema: The schema representing the uploaded file.
         """
         try:
+            # Check if the uploaded file is an image
+            if file.content_type not in [
+                "image/jpeg",
+                "image/png",
+                "image/gif",
+                "image/bmp",
+            ]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Only image files (JPEG, PNG, GIF, BMP) are allowed.",
+                )
+
+            # You can also add an additional check using the imghdr module
+            file_extension = imghdr.what(file.file)
+            if file_extension not in ["jpeg", "png", "gif", "bmp"]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="File is not a valid image type.",
+                )
+
             server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
             with open(server_image_path, "wb") as image_file:
                 shutil.copyfileobj(file.file, image_file)
@@ -100,6 +121,25 @@ class FileServices:
         try:
             uploaded_files = []
             for file in files:
+                # Check if the uploaded file is an image
+                if file.content_type not in [
+                    "image/jpeg",
+                    "image/png",
+                    "image/gif",
+                    "image/bmp",
+                ]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Only image files (JPEG, PNG, GIF, BMP) are allowed.",
+                    )
+
+                # You can also add an additional check using the imghdr module
+                file_extension = imghdr.what(file.file)
+                if file_extension not in ["jpeg", "png", "gif", "bmp"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="File is not a valid image type.",
+                    )
                 server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
                 with open(server_image_path, "wb") as image_file:
                     shutil.copyfileobj(file.file, image_file)
@@ -129,61 +169,159 @@ class FileServices:
             )
 
 
+# class FileServices:
+#     """
+#     Provides methods for uploading and managing image files.
+#     """
+
+#     #! change the file names when saving
+#     @staticmethod
+#     def upload_image(
+#         db: Session, file: UploadFile, user_idx: int
+#     ) -> UploadedFileSchema:
+#         """
+#         Uploads an image file, saves it to the specified folder, and creates a record in the database.
+
+#         Args:
+#             db (Session): Database session.
+#             file (UploadFile): The image file to upload.
+#             user_idx (int): The id of the current user.
+
+
+#         Returns:
+#             UploadedFileSchema: The schema representing the uploaded file.
+#         """
+#         try:
+#             server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
+#             with open(server_image_path, "wb") as image_file:
+#                 shutil.copyfileobj(file.file, image_file)
+
+#             uploaded_file = DiagnosisModel(
+#                 user_idx=user_idx,
+#                 server_id=uuid4().hex,
+#                 server_image_path=server_image_path,
+#                 image_name=file.filename,
+#             )
+
+#             db.add(uploaded_file)
+#             db.commit()
+#             db.refresh(uploaded_file)
+
+#             return UploadedFileSchema(
+#                 server_id=uploaded_file.server_id,
+#                 filename=file.filename,
+#                 content_type=file.content_type,
+#             )
+
+#         except Exception as e:
+#             print(e)
+#             raise HTTPException(
+#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#                 detail="Failed to upload file",
+#             )
+
+#     @staticmethod
+#     def upload_images(
+#         db: Session, files: List[UploadFile], user_idx: int
+#     ) -> List[UploadedFileSchema]:
+#         """
+#         Uploads a list of image files, saves them to the specified folder, and creates records in the database.
+
+#         Args:
+#             db (Session): The database session.
+#             files (List[UploadFile]): The list of image files to upload.
+#             user_id (int): The ID of the current user.
+
+#         Returns:
+#             List[UploadedFileSchema]: A list of schemas representing the uploaded files.
+#         """
+#         try:
+#             uploaded_files = []
+#             for file in files:
+#                 server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
+#                 with open(server_image_path, "wb") as image_file:
+#                     shutil.copyfileobj(file.file, image_file)
+
+#                 uploaded_file = DiagnosisModel(
+#                     server_id=uuid4().hex,
+#                     user_idx=user_idx,
+#                     server_image_path=server_image_path,
+#                     image_name=file.filename,
+#                 )
+#                 db.add(uploaded_file)
+#                 db.commit()
+#                 db.refresh(uploaded_file)
+#                 uploaded_files.append(
+#                     UploadedFileSchema(
+#                         server_id=uploaded_file.server_id,
+#                         filename=file.filename,
+#                         content_type=file.content_type,
+#                     )
+#                 )
+#             return uploaded_files
+#         except Exception as e:
+#             print(e)
+#             raise HTTPException(
+#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#                 detail="Failed to upload files",
+#             )
+
+
 class DiagnosisServices:
-    # transform = transforms.Compose(
-    #     [
-    #         transforms.Resize((224, 224)),
-    #         transforms.ToTensor(),
-    #         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    #     ]
-    # )
-    # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    # batch_size = 12
+    transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    batch_size = 12
 
-    # @staticmethod
-    # def load_model(model_path: str) -> torch.nn.Module:
-    #     """
-    #     Load a PyTorch model from the specified path.
+    @staticmethod
+    def load_model(model_path: str) -> torch.nn.Module:
+        """
+        Load a PyTorch model from the specified path.
 
-    #     Args:
-    #         model_path (str): The path to the PyTorch model file.
+        Args:
+            model_path (str): The path to the PyTorch model file.
 
-    #     Returns:
-    #         torch.nn.Module: The loaded PyTorch model.
-    #     """
-    #     # model = torch.load(model_path) #! delete if not needed
-    #     model = torch.jit.load(model_path)
-    #     model.to(DiagnosisServices.device)
-    #     model.eval()
-    #     return model
+        Returns:
+            torch.nn.Module: The loaded PyTorch model.
+        """
+        # model = torch.load(model_path) #! delete if not needed
+        model = torch.jit.load(model_path)
+        model.to(DiagnosisServices.device)
+        model.eval()
+        return model
 
-    # @staticmethod
-    # def _diagnose_image(image_path: str) -> list:
-    #     """
-    #     Diagnose an image using the loaded PyTorch model.
+    @staticmethod
+    def _diagnose_image(image_path: str) -> list:
+        """
+        Diagnose an image using the loaded PyTorch model.
 
-    #     Args:
-    #         image_path (str): The path to the image file.
+        Args:
+            image_path (str): The path to the image file.
 
-    #     Returns:
-    #         list: A list of probabilities for each class.
-    #     """
-    #     from app.main import model
+        Returns:
+            list: A list of probabilities for each class.
+        """
+        from app.main import model
 
-    #     image = Image.open(image_path)
-    #     image = image.convert("RGB")
+        image = Image.open(image_path)
+        image = image.convert("RGB")
 
-    #     image = (
-    #         DiagnosisServices.transform(image).unsqueeze(0).to(DiagnosisServices.device)
-    #     )
+        image = (
+            DiagnosisServices.transform(image).unsqueeze(0).to(DiagnosisServices.device)
+        )
 
-    #     with torch.no_grad():
-    #         output = model(image)
+        with torch.no_grad():
+            output = model(image)
 
-    #     probs = torch.nn.functional.softmax(output[0], dim=0)
+        probs = torch.nn.functional.softmax(output[0], dim=0)
 
-    #     probs = probs.data.cpu().numpy().tolist()
-    #     return probs
+        probs = probs.data.cpu().numpy().tolist()
+        return probs
 
     @staticmethod
     def _decode_prediction(probs: List[float]) -> DiseaseTypeEnum:
@@ -326,69 +464,69 @@ class DiagnosisServices:
                 detail="Failed to retrieve diagnosis records",
             )
 
-    # @staticmethod
-    # def batch_diagnose_uploaded_images(
-    #     db: Session = SessionFactory(),
-    # ) -> List[DiagnosisOutputSchema]:
-    #     """
-    #     Diagnose images for all uploaded files that are not yet diagnosed.
+    @staticmethod
+    def batch_diagnose_uploaded_images(
+        db: Session = SessionFactory(),
+    ) -> List[DiagnosisOutputSchema]:
+        """
+        Diagnose images for all uploaded files that are not yet diagnosed.
 
-    #     Args:
-    #         db (Session): The database session.
+        Args:
+            db (Session): The database session.
 
-    #     Returns:
-    #         List[DiagnosisOutputSchema]: A list of DiagnosisOutputSchema instances representing the diagnosis results.
-    #     """
+        Returns:
+            List[DiagnosisOutputSchema]: A list of DiagnosisOutputSchema instances representing the diagnosis results.
+        """
 
-    #     try:
-    #         from torch.utils.data import DataLoader
-    #         from app.main import model
-    #         from app.utils.dataset import CustomDataset
+        try:
+            from torch.utils.data import DataLoader
+            from app.main import model
+            from app.utils.dataset import CustomDataset
 
-    #         uploaded_files = (
-    #             db.query(DiagnosisModel)
-    #             .filter(DiagnosisModel.is_server_diagnosed == False)
-    #             .all()
-    #         )
+            uploaded_files = (
+                db.query(DiagnosisModel)
+                .filter(DiagnosisModel.is_server_diagnosed == False)
+                .all()
+            )
 
-    #         image_paths = [
-    #             uploaded_file.server_image_path for uploaded_file in uploaded_files
-    #         ]
+            image_paths = [
+                uploaded_file.server_image_path for uploaded_file in uploaded_files
+            ]
 
-    #         dataset = CustomDataset(image_paths, transform=DiagnosisServices.transform)
-    #         dataloader = DataLoader(
-    #             dataset, batch_size=DiagnosisServices.batch_size, shuffle=False
-    #         )
+            dataset = CustomDataset(image_paths, transform=DiagnosisServices.transform)
+            dataloader = DataLoader(
+                dataset, batch_size=DiagnosisServices.batch_size, shuffle=False
+            )
 
-    #         probs = []
-    #         for batch_images in dataloader:
-    #             batch_images = batch_images.to(DiagnosisServices.device)
-    #             with torch.no_grad():
-    #                 output = model(batch_images)
-    #             prob = torch.nn.functional.softmax(output, dim=0)
-    #             prob = prob.data.cpu().numpy().tolist()
-    #             probs.extend(prob)
+            probs = []
+            for batch_images in dataloader:
+                batch_images = batch_images.to(DiagnosisServices.device)
+                with torch.no_grad():
+                    output = model(batch_images)
+                prob = torch.nn.functional.softmax(output, dim=0)
+                prob = prob.data.cpu().numpy().tolist()
+                probs.extend(prob)
 
-    #         results = []
-    #         for i, uploaded_file in enumerate(uploaded_files):
-    #             uploaded_file.server_diagnosis = DiagnosisServices._decode_prediction(
-    #                 probs[i]
-    #             )
+            results = []
+            for i, uploaded_file in enumerate(uploaded_files):
+                uploaded_file.server_diagnosis = DiagnosisServices._decode_prediction(
+                    probs[i]
+                )
 
-    #             uploaded_file.is_server_diagnosed = True
-    #             uploaded_file.server_confidence_score = probs[i]
+                uploaded_file.is_server_diagnosed = True
+                uploaded_file.server_confidence_score = probs[i]
 
-    #             diagnosis_output = DiagnosisOutputSchema.model_validate(uploaded_file)
-    #             results.append(diagnosis_output)
+                diagnosis_output = DiagnosisOutputSchema.model_validate(uploaded_file)
+                results.append(diagnosis_output)
 
-    #         db.commit()
-    #         return results
-    #     except Exception as e:
-    #         print(e)
-    #         raise HTTPException(
-    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #             detail="Failed to diagnose uploaded files",
-    #         )
+            db.commit()
+            return results
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to diagnose uploaded files",
+            )
 
     def upload_mobile_diagnosis(
         db: Session,
