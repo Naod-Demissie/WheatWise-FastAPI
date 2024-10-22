@@ -42,7 +42,7 @@ class AnalyticsServices:
         """
         try:
             print(f"{current_user.role=}")
-            print(f"sdddddddddd { current_user.role != 'System Admin'}")
+            print(f"{ current_user.role != 'System Admin'}")
             if current_user.role != "System Admin":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,

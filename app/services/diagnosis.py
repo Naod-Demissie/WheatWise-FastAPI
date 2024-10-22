@@ -1,36 +1,28 @@
 import os
-import imghdr
 import shutil
+import numpy as np
+import torch
+import torchvision.transforms as transforms
+
 from PIL import Image
 from typing import List
 from uuid import uuid4
 from dotenv import load_dotenv
-
+from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, UploadFile, status
-from fastapi.params import Depends
+
+from app.utils.session import SessionFactory
 from app.models.enums import DiseaseTypeEnum
+from app.models.diagnosis import DiagnosisModel
 from app.schemas.diagnosis import (
     DiagnosisOutputSchema,
     MobileDiagnosisInputSchema,
     UploadedFileSchema,
 )
-from app.models.diagnosis import DiagnosisModel
-from sqlalchemy.orm import Session
-
-import numpy as np
-
-import torch
-import torchvision.transforms as transforms
-
-from app.utils.session import SessionFactory
-import base64
-
 
 load_dotenv()
 UPLOAD_FOLDER_PATH = os.getenv("UPLOAD_FOLDER_PATH")
-
 router = APIRouter(prefix="/diagnosis", tags=["Diagnosis"])
-
 
 class FileServices:
     """
@@ -64,17 +56,8 @@ class FileServices:
             ]:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Only image files (JPEG, PNG, GIF, BMP) are allowed.",
+                    detail="File is not a valid image.",
                 )
-
-            # You can also add an additional check using the imghdr module
-            file_extension = imghdr.what(file.file)
-            if file_extension not in ["jpeg", "png", "gif", "bmp"]:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="File is not a valid image type.",
-                )
-
             server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
             with open(server_image_path, "wb") as image_file:
                 shutil.copyfileobj(file.file, image_file)
@@ -95,6 +78,9 @@ class FileServices:
                 filename=file.filename,
                 content_type=file.content_type,
             )
+
+        except HTTPException as http_exc:
+            raise
 
         except Exception as e:
             print(e)
@@ -120,6 +106,7 @@ class FileServices:
         """
         try:
             uploaded_files = []
+            failed_files = []
             for file in files:
                 # Check if the uploaded file is an image
                 if file.content_type not in [
@@ -128,21 +115,15 @@ class FileServices:
                     "image/gif",
                     "image/bmp",
                 ]:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Only image files (JPEG, PNG, GIF, BMP) are allowed.",
-                    )
-
-                # You can also add an additional check using the imghdr module
-                file_extension = imghdr.what(file.file)
-                if file_extension not in ["jpeg", "png", "gif", "bmp"]:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="File is not a valid image type.",
-                    )
-                server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
-                with open(server_image_path, "wb") as image_file:
-                    shutil.copyfileobj(file.file, image_file)
+                    failed_files.append(file.filename)
+                    # raise HTTPException(
+                    #     status_code=status.HTTP_400_BAD_REQUEST,
+                    #     detail="File is not a valid image.",
+                    # )
+                else:
+                    server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
+                    with open(server_image_path, "wb") as image_file:
+                        shutil.copyfileobj(file.file, image_file)
 
                 uploaded_file = DiagnosisModel(
                     server_id=uuid4().hex,
@@ -160,112 +141,15 @@ class FileServices:
                         content_type=file.content_type,
                     )
                 )
+            print(f"{len(uploaded_files)} out {len(files)} uploaded")
             return uploaded_files
+
         except Exception as e:
             print(e)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to upload files",
             )
-
-
-# class FileServices:
-#     """
-#     Provides methods for uploading and managing image files.
-#     """
-
-#     #! change the file names when saving
-#     @staticmethod
-#     def upload_image(
-#         db: Session, file: UploadFile, user_idx: int
-#     ) -> UploadedFileSchema:
-#         """
-#         Uploads an image file, saves it to the specified folder, and creates a record in the database.
-
-#         Args:
-#             db (Session): Database session.
-#             file (UploadFile): The image file to upload.
-#             user_idx (int): The id of the current user.
-
-
-#         Returns:
-#             UploadedFileSchema: The schema representing the uploaded file.
-#         """
-#         try:
-#             server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
-#             with open(server_image_path, "wb") as image_file:
-#                 shutil.copyfileobj(file.file, image_file)
-
-#             uploaded_file = DiagnosisModel(
-#                 user_idx=user_idx,
-#                 server_id=uuid4().hex,
-#                 server_image_path=server_image_path,
-#                 image_name=file.filename,
-#             )
-
-#             db.add(uploaded_file)
-#             db.commit()
-#             db.refresh(uploaded_file)
-
-#             return UploadedFileSchema(
-#                 server_id=uploaded_file.server_id,
-#                 filename=file.filename,
-#                 content_type=file.content_type,
-#             )
-
-#         except Exception as e:
-#             print(e)
-#             raise HTTPException(
-#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#                 detail="Failed to upload file",
-#             )
-
-#     @staticmethod
-#     def upload_images(
-#         db: Session, files: List[UploadFile], user_idx: int
-#     ) -> List[UploadedFileSchema]:
-#         """
-#         Uploads a list of image files, saves them to the specified folder, and creates records in the database.
-
-#         Args:
-#             db (Session): The database session.
-#             files (List[UploadFile]): The list of image files to upload.
-#             user_id (int): The ID of the current user.
-
-#         Returns:
-#             List[UploadedFileSchema]: A list of schemas representing the uploaded files.
-#         """
-#         try:
-#             uploaded_files = []
-#             for file in files:
-#                 server_image_path = f"{UPLOAD_FOLDER_PATH}/{file.filename}"
-#                 with open(server_image_path, "wb") as image_file:
-#                     shutil.copyfileobj(file.file, image_file)
-
-#                 uploaded_file = DiagnosisModel(
-#                     server_id=uuid4().hex,
-#                     user_idx=user_idx,
-#                     server_image_path=server_image_path,
-#                     image_name=file.filename,
-#                 )
-#                 db.add(uploaded_file)
-#                 db.commit()
-#                 db.refresh(uploaded_file)
-#                 uploaded_files.append(
-#                     UploadedFileSchema(
-#                         server_id=uploaded_file.server_id,
-#                         filename=file.filename,
-#                         content_type=file.content_type,
-#                     )
-#                 )
-#             return uploaded_files
-#         except Exception as e:
-#             print(e)
-#             raise HTTPException(
-#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#                 detail="Failed to upload files",
-#             )
-
 
 class DiagnosisServices:
     transform = transforms.Compose(
