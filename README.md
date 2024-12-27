@@ -1,7 +1,7 @@
-# WheatNet API
+# WheatWise API
 
 ## Introduction
-WheatNet API is a service designed to classify wheat diseases from images. It utilizes pre-trained deep learning models to classify images into five classes: septoria, brown rust, yellow rust, mildew, and healthy. This API provides endpoints for user management, authentication, image upload, image diagnosis, and analytics reporting.
+WheatWise API is a service designed to classify wheat diseases from images. It utilizes pre-trained deep learning models to classify images into five classes: septoria, brown rust, yellow rust, mildew, and healthy. This API provides endpoints for user management, authentication, image upload, image diagnosis, and analytics reporting.
 
 ## Endpoints
 
